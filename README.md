@@ -1,4 +1,4 @@
-# Output
+# Outpost
 
 A native macOS application for managing rclone cloud storage - browse, download, and upload files to any rclone remote.
 
@@ -26,7 +26,7 @@ rclone config  # Configure your remotes
 ## Installation
 
 1. Clone the repository
-2. Open `Output.xcodeproj` in Xcode
+2. Open `Outpost.xcodeproj` in Xcode
 3. Build and run (⌘R)
 
 ## Usage
@@ -58,4 +58,3 @@ Output uses rclone's [Remote Control API](https://rclone.org/rc/) for operations
 ## License
 
 MIT License
-# outpost
