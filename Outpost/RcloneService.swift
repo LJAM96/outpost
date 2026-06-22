@@ -78,9 +78,11 @@ actor RcloneService {
 
     func copyFile(srcRemote: String, srcPath: String, srcFile: String,
                    dstRemote: String, dstPath: String, dstFile: String) async throws -> String {
+        let srcFs = srcRemote.isEmpty ? "/\(srcPath)" : "\(srcRemote):\(srcPath)"
+        let dstFs = dstRemote.isEmpty ? "/\(dstPath)" : "\(dstRemote):\(dstPath)"
         let body: [String: Any] = [
-            "srcFs": "\(srcRemote):\(srcPath)",
-            "dstFs": "\(dstRemote):\(dstPath)",
+            "srcFs": srcFs,
+            "dstFs": dstFs,
             "srcRemote": srcFile,
             "dstRemote": dstFile
         ]
