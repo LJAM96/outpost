@@ -17,8 +17,9 @@ struct ContentView: View {
                 }
             }
         }
+        .navigationTitle("")
         .toolbar {
-            ToolbarItem {
+            ToolbarItem(placement: .navigation) {
                 Button {
                     showTransfers.toggle()
                 } label: {

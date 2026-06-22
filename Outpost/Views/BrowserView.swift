@@ -67,7 +67,7 @@ struct BrowserView: View {
             return true
         }
         .toolbar {
-            ToolbarItem {
+            ToolbarItem(placement: .navigation) {
                 Button { viewModel.navigateUp() } label: { Image(systemName: "chevron.backward") }
                     .disabled(viewModel.currentPath.isEmpty || viewModel.selectedRemote == nil)
                     .help("Back")
