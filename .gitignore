@@ -1,0 +1,24 @@
+# Xcode
+*.xcuserdata
+*.xcworkspace
+DerivedData/
+build/
+*.mode1v3
+*.mode2v3
+*.pbxuser
+*.moved-aside
+!default.xcworkspace
+xcuserdata/
+*.xccheckout
+*.moved-aside
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
