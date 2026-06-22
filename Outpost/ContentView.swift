@@ -19,7 +19,7 @@ struct ContentView: View {
         }
         .navigationTitle("")
         .toolbar {
-            ToolbarItem(placement: .navigation) {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showTransfers.toggle()
                 } label: {
