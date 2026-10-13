@@ -1,6 +1,8 @@
-import SwiftUI
 import AppKit
+import SwiftUI
+import UniformTypeIdentifiers
 
+@MainActor
 final class FileIconProvider {
     static let shared = FileIconProvider()
     private var cache: [String: NSImage] = [:]
@@ -14,23 +16,18 @@ final class FileIconProvider {
 
         let icon: NSImage
         if isDirectory {
-            icon = NSWorkspace.shared.icon(forFileType: NSFileTypeForHFSTypeCode(OSType(kGenericFolderIcon)))
+            icon = NSWorkspace.shared.icon(for: .folder)
         } else {
             let ext = (fileName as NSString).pathExtension.lowercased()
-            icon = ext.isEmpty
-                ? NSWorkspace.shared.icon(forFileType: NSFileTypeForHFSTypeCode(OSType(kGenericDocumentIcon)))
-                : NSWorkspace.shared.icon(forFileType: ext)
+            if !ext.isEmpty, let type = UTType(filenameExtension: ext) {
+                icon = NSWorkspace.shared.icon(for: type)
+            } else {
+                icon = NSWorkspace.shared.icon(for: .data)
+            }
         }
 
-        let resized = NSImage(size: NSSize(width: size, height: size))
-        resized.lockFocus()
-        icon.draw(in: NSRect(x: 0, y: 0, width: size, height: size),
-                  from: NSRect(origin: .zero, size: icon.size),
-                  operation: .copy, fraction: 1.0)
-        resized.unlockFocus()
-
-        cache[cacheKey] = resized
-        return resized
+        cache[cacheKey] = icon
+        return icon
     }
 }
 

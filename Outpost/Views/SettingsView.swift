@@ -1,8 +1,7 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var viewModel: AppViewModel
-
     var body: some View {
         TabView {
             GeneralSettingsTab()
@@ -11,69 +10,102 @@ struct SettingsView: View {
             ConfigSettingsTab()
                 .tabItem { Label("Config", systemImage: "doc.text") }
 
+            TransferSettingsTab()
+                .tabItem { Label("Transfers", systemImage: "arrow.triangle.2.circlepath") }
+
+            UpdateSettingsTab()
+                .tabItem { Label("Updates", systemImage: "arrow.down.circle") }
+
             AboutTab()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 480, height: 320)
+        .frame(width: 560, height: 420)
     }
 }
 
 private struct GeneralSettingsTab: View {
     @EnvironmentObject var viewModel: AppViewModel
+    @EnvironmentObject var preferences: AppPreferences
+    @EnvironmentObject var launchAtLoginController: LaunchAtLoginController
 
     var body: some View {
         Form {
             Section {
-                Toggle("Start daemon at launch", isOn: .constant(true))
-                    .disabled(true)
-                    .help("The rclone daemon always starts automatically")
+                Toggle("Start rclone daemon when Outpost opens", isOn: $preferences.startDaemonAtLaunch)
 
-                if !viewModel.autoMountRemotes.isEmpty {
-                    Text("Auto-mount remotes:")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                Toggle(isOn: Binding(
+                    get: { launchAtLoginController.isEnabled },
+                    set: { launchAtLoginController.setEnabled($0) }
+                )) {
+                    Text("Open Outpost at login")
+                }
 
-                    ForEach(viewModel.remotes) { remote in
-                        if viewModel.autoMountRemotes.contains(remote.name) {
-                            HStack {
-                                Image(systemName: "externaldrive.fill")
-                                    .foregroundStyle(.green)
-                                Text(remote.name)
-                                Spacer()
-                                Text(remote.displayType)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-
-                    Text("Right-click a remote in the sidebar to toggle auto-mount.")
+                if let error = launchAtLoginController.lastError {
+                    Text(error)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.red)
                 }
             } header: {
                 Text("Startup")
             }
 
             Section {
-                HStack {
-                    Text("rclone version")
-                    Spacer()
-                    Text(viewModel.daemonVersion.isEmpty ? "unknown" : viewModel.daemonVersion)
+                LabeledContent("Status") {
+                    Label(
+                        viewModel.daemonRunning ? "Running" : "Stopped",
+                        systemImage: viewModel.daemonRunning ? "checkmark.circle.fill" : "circle"
+                    )
+                    .foregroundStyle(viewModel.daemonRunning ? Color.green : Color.secondary)
+                }
+
+                LabeledContent("rclone version") {
+                    Text(viewModel.daemonVersion.isEmpty ? "Unknown" : viewModel.daemonVersion)
+                        .foregroundStyle(.secondary)
+                }
+
+                LabeledContent("Remote control port") {
+                    Text("5572")
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text("Daemon port")
-                    Spacer()
-                    Text("5572")
-                        .foregroundStyle(.secondary)
+                    Button("Start") {
+                        Task { await viewModel.startDaemon() }
+                    }
+                    .disabled(viewModel.daemonRunning)
+
+                    Button("Restart") {
+                        Task { await viewModel.restartDaemon() }
+                    }
+
+                    Button("Stop") {
+                        viewModel.stopDaemon()
+                    }
+                    .disabled(!viewModel.daemonRunning)
                 }
             } header: {
                 Text("Daemon")
             }
+
+            Section {
+                Picker("Default browser view", selection: $preferences.browserViewMode) {
+                    ForEach(BrowserViewMode.allCases, id: \.self) { mode in
+                        Label(mode.rawValue, systemImage: mode.systemImage)
+                            .tag(mode)
+                    }
+                }
+
+                Toggle("Show transfer queue", isOn: $preferences.showTransfers)
+                Toggle("Confirm before deleting files", isOn: $preferences.confirmDeletes)
+            } header: {
+                Text("Browsing")
+            }
         }
         .formStyle(.grouped)
+        .padding()
+        .task {
+            launchAtLoginController.refresh()
+        }
     }
 }
 
@@ -83,30 +115,26 @@ private struct ConfigSettingsTab: View {
     var body: some View {
         Form {
             Section {
-                HStack {
-                    if let path = viewModel.currentConfigPath {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Custom config file active")
-                                .font(.subheadline)
-                            Text(path)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                            Text((path as NSString).deletingLastPathComponent)
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Using default config")
-                                .font(.subheadline)
-                            Text("~/.config/rclone/rclone.conf")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                if let path = viewModel.currentConfigPath {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Custom config file active")
+                            .font(.subheadline)
+                        Text(path)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                        Text("Outpost keeps a security-scoped bookmark for this file when sandboxed.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
-
-                    Spacer()
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Using default rclone config")
+                            .font(.subheadline)
+                        Text("~/.config/rclone/rclone.conf")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 HStack {
@@ -114,41 +142,39 @@ private struct ConfigSettingsTab: View {
                         viewModel.chooseConfigFile()
                     }
 
-                    if viewModel.currentConfigPath != nil {
+                    if let path = viewModel.currentConfigPath {
+                        Button("Reveal in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+                        }
+
                         Button("Reset to Default") {
                             viewModel.switchConfigPath(nil)
                         }
                     }
-                }
-
-                if viewModel.currentConfigPath != nil {
-                    Text("Restart the app to apply config changes.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
                 }
             } header: {
                 Text("Configuration File")
             }
 
             Section {
-                HStack {
-                    Text("Configured remotes")
-                    Spacer()
+                LabeledContent("Configured remotes") {
                     Text("\(viewModel.remotes.count)")
                         .foregroundStyle(.secondary)
                 }
 
-                if !viewModel.remotes.isEmpty {
+                if viewModel.remotes.isEmpty {
+                    Text("No remotes are available from the active rclone config.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
                     ForEach(viewModel.remotes) { remote in
                         HStack {
-                            Image(systemName: "externaldrive")
+                            Image(systemName: RemoteIcon.forType(remote.type))
                                 .foregroundStyle(.blue)
                                 .font(.caption)
                             Text(remote.name)
-                                .font(.caption)
                             Spacer()
                             Text(remote.displayType)
-                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -158,10 +184,103 @@ private struct ConfigSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .padding()
+    }
+}
+
+private struct TransferSettingsTab: View {
+    @EnvironmentObject var viewModel: AppViewModel
+    @EnvironmentObject var preferences: AppPreferences
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Clear completed transfers automatically", isOn: $preferences.clearCompletedTransfersAutomatically)
+                Toggle("Show transfer queue in the main window", isOn: $preferences.showTransfers)
+            } header: {
+                Text("Queue")
+            }
+
+            Section {
+                LabeledContent("Active transfers") {
+                    Text("\(viewModel.transferJobs.filter { $0.status == .transferring }.count)")
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("Completed or failed") {
+                    Text("\(viewModel.transferJobs.filter { $0.status == .completed || $0.status == .failed || $0.status == .cancelled }.count)")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Button("Cancel Active") {
+                        viewModel.cancelAllTransfers()
+                    }
+                    .disabled(!viewModel.transferJobs.contains { $0.status == .pending || $0.status == .transferring })
+
+                    Button("Clear Completed") {
+                        viewModel.clearCompletedTransfers()
+                    }
+                    .disabled(!viewModel.transferJobs.contains { $0.status == .completed || $0.status == .failed || $0.status == .cancelled })
+                }
+            } header: {
+                Text("Current Session")
+            }
+
+            Section {
+                Text("Uploads and downloads use the access granted by file pickers. Custom config files are stored with security-scoped bookmarks.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("File Access")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+    }
+}
+
+private struct UpdateSettingsTab: View {
+    @EnvironmentObject var preferences: AppPreferences
+    @EnvironmentObject var updateController: UpdateController
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Automatically check for updates", isOn: $preferences.automaticallyCheckForUpdates)
+
+                Button("Check for Updates...") {
+                    updateController.checkForUpdates()
+                }
+
+                if let summary = updateController.lastCheckSummary {
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Updates")
+            }
+
+            Section {
+                Text("The repository includes an appcast placeholder and release checklist for Sparkle-based direct distribution.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Release Channel")
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
     }
 }
 
 private struct AboutTab: View {
+    private var versionText: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "Version \(version) (\(build))"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -169,39 +288,41 @@ private struct AboutTab: View {
             Image(systemName: "externaldrive.badge.wifi")
                 .font(.system(size: 64))
                 .foregroundStyle(.blue)
+                .accessibilityHidden(true)
 
             Text("Outpost")
                 .font(.title)
                 .fontWeight(.medium)
 
-            Text("rclone cloud storage manager")
+            Text("A native rclone cloud storage manager for macOS")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("Version 1.0")
+            Text(versionText)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
             Divider()
-                .frame(width: 200)
+                .frame(width: 240)
 
             VStack(spacing: 4) {
-                Text("Built with SwiftUI")
+                Text("SwiftUI app with rclone Remote Control API")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Uses rclone Remote Control API")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("macOS 13+")
+                Text("macOS 13 or later")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Link("rclone.org", destination: URL(string: "https://rclone.org")!)
-                .font(.caption)
+            HStack {
+                Link("rclone.org", destination: URL(string: "https://rclone.org")!)
+                Link("GitHub Releases", destination: URL(string: "https://github.com/LJAM96/outpost/releases")!)
+            }
+            .font(.caption)
 
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 }

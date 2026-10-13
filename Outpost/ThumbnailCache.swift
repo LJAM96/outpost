@@ -23,13 +23,13 @@ actor ThumbnailCache {
 
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("OutpostThumbs")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let localURL = tempDir.appendingPathComponent(item.name)
+        let localURL = tempDir.appendingPathComponent(localCacheFileName(for: cacheKey, fileName: item.name))
 
         if !FileManager.default.fileExists(atPath: localURL.path) {
             do {
                 let jobID = try await RcloneService.shared.copyFile(
                     srcRemote: remote, srcPath: path, srcFile: item.name,
-                    dstRemote: "", dstPath: tempDir.path, dstFile: item.name
+                    dstRemote: "", dstPath: tempDir.path, dstFile: localURL.lastPathComponent
                 )
                 var finished = false
                 while !finished {
@@ -49,22 +49,27 @@ actor ThumbnailCache {
             representationTypes: .thumbnail
         )
 
-        return await withCheckedContinuation { continuation in
-            QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { thumbnail, error in
+        let image: NSImage = await withCheckedContinuation { continuation in
+            QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { thumbnail, _ in
                 if let thumbnail {
                     continuation.resume(returning: thumbnail.nsImage)
                 } else {
                     let icon = NSWorkspace.shared.icon(forFile: localURL.path)
-                    let resized = NSImage(size: NSSize(width: 128, height: 128))
-                    resized.lockFocus()
-                    icon.draw(in: NSRect(x: 0, y: 0, width: 128, height: 128),
-                              from: NSRect(origin: .zero, size: icon.size),
-                              operation: .copy, fraction: 1.0)
-                    resized.unlockFocus()
-                    continuation.resume(returning: resized)
+                    continuation.resume(returning: icon)
                 }
             }
         }
+        cache[cacheKey] = image
+        return image
+    }
+
+    private func localCacheFileName(for cacheKey: String, fileName: String) -> String {
+        let encoded = Data(cacheKey.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "=", with: "")
+        return "\(encoded)-\(fileName)"
     }
 }
 
@@ -74,11 +79,6 @@ struct ThumbnailView: View {
 
     @EnvironmentObject var viewModel: AppViewModel
     @State private var thumbnail: NSImage?
-
-    private var remotePath: String {
-        guard let remote = viewModel.selectedRemote else { return "" }
-        return viewModel.currentPath
-    }
 
     var body: some View {
         Group {

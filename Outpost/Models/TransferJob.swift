@@ -10,6 +10,7 @@ enum TransferStatus: String, Codable {
     case transferring
     case completed
     case failed
+    case cancelled
 }
 
 struct TransferJob: Identifiable, Codable {
@@ -17,13 +18,14 @@ struct TransferJob: Identifiable, Codable {
     let remote: String
 
     enum CodingKeys: String, CodingKey {
-        case remote, remotePath, localPath, fileName, fileSize, direction, status, bytesTransferred, errorMessage
+        case remote, remotePath, localPath, fileName, fileSize, direction, rcloneJobID, status, bytesTransferred, errorMessage
     }
     let remotePath: String
     let localPath: String
     let fileName: String
     let fileSize: Int64
     let direction: TransferDirection
+    var rcloneJobID: String? = nil
     var status: TransferStatus
     var bytesTransferred: Int64
     var errorMessage: String?
@@ -34,6 +36,7 @@ struct TransferJob: Identifiable, Codable {
     }
 
     var formattedProgress: String {
+        if status == .cancelled { return "Cancelled" }
         let pct = Int(progress * 100)
         return "\(pct)%"
     }

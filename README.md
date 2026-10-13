@@ -12,6 +12,8 @@ A native macOS application for managing rclone cloud storage - browse, download,
 - ⬆️ **Upload Files** - Upload via file picker or drag & drop
 - ⚙️ **Config Selection** - Switch between rclone configuration files
 - 📊 **Transfer Queue** - Track uploads/downloads with progress
+- 🧭 **Native macOS Controls** - Menu commands, settings, menu bar access, and keyboard shortcuts
+- 🔐 **Sandbox-Aware File Access** - Security-scoped bookmarks for custom config files
 
 ## Requirements
 
@@ -31,7 +33,7 @@ rclone config  # Configure your remotes
 
 ## Usage
 
-1. **Launch Output** - The rclone daemon starts automatically
+1. **Launch Outpost** - The rclone daemon starts automatically unless disabled in Settings
 2. **Select a remote** from the sidebar
 3. **Browse files** - Double-click folders to navigate
 4. **Download** - Select files and click Download
@@ -43,17 +45,16 @@ Output uses rclone's [Remote Control API](https://rclone.org/rc/) for operations
 
 ```
 ┌───────────────┐     ┌────────────┐     ┌─────────────┐
-│   Output App  │────▶│ rclone rcd │────▶│   Remotes   │
+│  Outpost App  │────▶│ rclone rcd │────▶│   Remotes   │
 │  (SwiftUI)    │◀────│  (Daemon)  │◀────│ (Cloud/NAS) │
 └───────────────┘     └────────────┘     └─────────────┘
 ```
 
 ## Roadmap
 
-- 🔜 Mount remotes as local drives (macFUSE/FUSE-T)
-- 🔜 Create/edit remotes in-app
-- 🔜 Menu bar integration
-- 🔜 Auto-mount on startup
+- Sparkle auto-update integration after signing keys are generated
+- Bundled/helper-based rclone distribution option
+- App Store specific sandbox review and feature profile
 
 ## License
 

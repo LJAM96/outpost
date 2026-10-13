@@ -21,17 +21,31 @@ final class AppViewModel: ObservableObject {
     private var progressTimer: Timer?
     private var mountProcesses: [String: Process] = [:]
     private let service = RcloneService.shared
+    private let daemonController = RcloneDaemonController.shared
+    private let preferences = AppPreferences.shared
 
     init() {
         if let saved = UserDefaults.standard.stringArray(forKey: "autoMountRemotes") {
             autoMountRemotes = Set(saved)
         }
-        currentConfigPath = UserDefaults.standard.string(forKey: "currentConfigPath")
+        if let configURL = SecurityScopedBookmarkStore.shared.resolvedURL(for: SecurityScopedBookmarkStore.Key.rcloneConfig) {
+            currentConfigPath = configURL.path
+            UserDefaults.standard.set(configURL.path, forKey: "currentConfigPath")
+        } else {
+            currentConfigPath = UserDefaults.standard.string(forKey: "currentConfigPath")
+        }
     }
 
     func checkDaemon() async {
         let running = await service.isRunning
         daemonRunning = running
+        if !running {
+            daemonVersion = ""
+            if let daemonError = daemonController.lastError {
+                errorMessage = daemonError
+            }
+            return
+        }
         if running {
             do {
                 daemonVersion = try await service.getVersion()
@@ -41,6 +55,37 @@ final class AppViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    func refresh() async {
+        await checkDaemon()
+        if selectedRemote != nil {
+            await loadCurrentPath()
+        }
+    }
+
+    func startDaemon() async {
+        do {
+            try await daemonController.start(configPath: currentConfigPath)
+            await checkDaemon()
+        } catch {
+            errorMessage = "Failed to start daemon: \(error.localizedDescription)"
+        }
+    }
+
+    func restartDaemon() async {
+        do {
+            try await daemonController.restart(configPath: currentConfigPath)
+            await checkDaemon()
+        } catch {
+            errorMessage = "Failed to restart daemon: \(error.localizedDescription)"
+        }
+    }
+
+    func stopDaemon() {
+        daemonController.stop()
+        daemonRunning = false
+        daemonVersion = ""
     }
 
     func loadRemotes() async throws {
@@ -120,11 +165,16 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    func deleteItems(_ itemsToDelete: [RemoteItem]) async {
+    func deleteItems(_ itemsToDelete: [RemoteItem], inPath path: String? = nil) async {
         guard let remote = selectedRemote else { return }
+        let basePath = path ?? currentPath
         for item in itemsToDelete {
             do {
-                try await service.deleteItem(remote: remote.name, path: currentPath, itemName: item.name)
+                if item.isDirectory {
+                    try await service.deleteDirectory(remote: remote.name, path: basePath, directoryName: item.name)
+                } else {
+                    try await service.deleteItem(remote: remote.name, path: basePath, itemName: item.name)
+                }
             } catch {
                 errorMessage = "Failed to delete '\(item.name)': \(error.localizedDescription)"
                 return
@@ -136,7 +186,7 @@ final class AppViewModel: ObservableObject {
     func downloadItems(_ itemsToDownload: [RemoteItem]) {
         guard let remote = selectedRemote else { return }
         for item in itemsToDownload {
-            let job = TransferJob(remote: remote.name, remotePath: "\(currentPath)/\(item.name)",
+            let job = TransferJob(remote: remote.name, remotePath: remotePath(for: item, in: currentPath),
                 localPath: "", fileName: item.name, fileSize: item.size,
                 direction: .download, status: .pending, bytesTransferred: 0)
             transferJobs.insert(job, at: 0)
@@ -144,10 +194,12 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    func downloadToLocal(_ itemsToDownload: [RemoteItem]) {
+    func downloadToLocal(_ itemsToDownload: [RemoteItem], fromPath path: String? = nil) {
         guard let remote = selectedRemote else { return }
+        guard !itemsToDownload.isEmpty else { return }
+        let basePath = path ?? currentPath
         let hasFolders = itemsToDownload.contains { $0.isDirectory }
-        if hasFolders { downloadFoldersToLocal(itemsToDownload); return }
+        if hasFolders { downloadFoldersToLocal(itemsToDownload, fromPath: basePath); return }
 
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
@@ -158,15 +210,23 @@ final class AppViewModel: ObservableObject {
 
         for item in itemsToDownload {
             let localPath = destinationURL.appendingPathComponent(item.name).path
-            let job = TransferJob(remote: remote.name, remotePath: "\(currentPath)/\(item.name)",
+            let job = TransferJob(remote: remote.name, remotePath: remotePath(for: item, in: basePath),
                 localPath: localPath, fileName: item.name, fileSize: item.size,
                 direction: .download, status: .pending, bytesTransferred: 0)
             transferJobs.insert(job, at: 0)
-            Task { await startDownload(job: job) }
+            let didStartAccess = destinationURL.startAccessingSecurityScopedResource()
+            Task {
+                defer {
+                    if didStartAccess {
+                        destinationURL.stopAccessingSecurityScopedResource()
+                    }
+                }
+                await startDownload(job: job)
+            }
         }
     }
 
-    private func downloadFoldersToLocal(_ items: [RemoteItem]) {
+    private func downloadFoldersToLocal(_ items: [RemoteItem], fromPath basePath: String) {
         guard let remote = selectedRemote else { return }
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
@@ -176,29 +236,52 @@ final class AppViewModel: ObservableObject {
         guard panel.runModal() == .OK, let destinationURL = panel.url else { return }
 
         for item in items {
-            let remotePath = currentPath.isEmpty ? item.name : "\(currentPath)/\(item.name)"
+            let remotePath = remotePath(for: item, in: basePath)
             let localPath = destinationURL.appendingPathComponent(item.name).path
             let job = TransferJob(remote: remote.name, remotePath: remotePath,
                 localPath: localPath, fileName: item.name, fileSize: item.size,
                 direction: .download, status: .transferring, bytesTransferred: 0)
             transferJobs.insert(job, at: 0)
             startProgressPolling()
+            let didStartAccess = destinationURL.startAccessingSecurityScopedResource()
             Task {
-                let index = transferJobs.firstIndex(where: { $0.id == job.id })!
+                defer {
+                    if didStartAccess {
+                        destinationURL.stopAccessingSecurityScopedResource()
+                    }
+                }
                 do {
                     let jobID = try await service.syncCopy(srcRemote: remote.name, srcPath: remotePath, dstPath: localPath)
+                    updateTransferJob(job.id) { $0.rcloneJobID = jobID }
+                    if isTransferCancelled(job.id) {
+                        try? await service.stopJob(jobID: jobID)
+                        return
+                    }
                     var finished = false
                     while !finished {
                         try await Task.sleep(nanoseconds: 1_000_000_000)
+                        if isTransferCancelled(job.id) {
+                            try? await service.stopJob(jobID: jobID)
+                            return
+                        }
                         let status = try await service.getJobStatus(jobID: jobID)
-                        if let error = status.error { transferJobs[index].errorMessage = error; transferJobs[index].status = .failed; return }
-                        transferJobs[index].bytesTransferred = status.bytes
+                        if let error = status.error {
+                            updateTransferJob(job.id) {
+                                $0.errorMessage = error
+                                $0.status = .failed
+                            }
+                            return
+                        }
+                        updateTransferJob(job.id) { $0.bytesTransferred = status.bytes }
                         finished = status.finished
                     }
-                    transferJobs[index].status = .completed
+                    updateTransferJob(job.id) { $0.status = .completed }
+                    clearCompletedTransferIfNeeded()
                 } catch {
-                    transferJobs[index].errorMessage = error.localizedDescription
-                    transferJobs[index].status = .failed
+                    updateTransferJob(job.id) {
+                        $0.errorMessage = error.localizedDescription
+                        $0.status = .failed
+                    }
                 }
             }
         }
@@ -214,16 +297,25 @@ final class AppViewModel: ObservableObject {
                 localPath: url.path, fileName: fileName, fileSize: fileSize,
                 direction: .upload, status: .pending, bytesTransferred: 0)
             transferJobs.insert(job, at: 0)
-            Task { await startUpload(job: job) }
+            let didStartAccess = url.startAccessingSecurityScopedResource()
+            Task {
+                defer {
+                    if didStartAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                await startUpload(job: job)
+            }
         }
     }
 
-    func quickOpenFile(_ item: RemoteItem) {
+    func quickOpenFile(_ item: RemoteItem, inPath path: String? = nil) {
         guard let remote = selectedRemote, !item.isDirectory else { return }
+        let basePath = path ?? currentPath
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("Outpost")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let localURL = tempDir.appendingPathComponent(item.name)
-        let job = TransferJob(remote: remote.name, remotePath: "\(currentPath)/\(item.name)",
+        let job = TransferJob(remote: remote.name, remotePath: remotePath(for: item, in: basePath),
             localPath: localURL.path, fileName: item.name, fileSize: item.size,
             direction: .download, status: .transferring, bytesTransferred: 0)
         transferJobs.insert(job, at: 0)
@@ -311,8 +403,16 @@ final class AppViewModel: ObservableObject {
             UserDefaults.standard.set(path, forKey: "currentConfigPath")
         } else {
             UserDefaults.standard.removeObject(forKey: "currentConfigPath")
+            SecurityScopedBookmarkStore.shared.removeBookmark(for: SecurityScopedBookmarkStore.Key.rcloneConfig)
         }
-        errorMessage = "Config changed. Restart the app to apply."
+        Task {
+            do {
+                try await daemonController.restart(configPath: path)
+                await checkDaemon()
+            } catch {
+                errorMessage = "Config changed, but rclone restart failed: \(error.localizedDescription)"
+            }
+        }
     }
 
     func chooseConfigFile() {
@@ -324,13 +424,12 @@ final class AppViewModel: ObservableObject {
                                       UTType(filenameExtension: "rclone") ?? .data]
         panel.message = "Select rclone config file"
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        SecurityScopedBookmarkStore.shared.saveBookmark(for: url, key: SecurityScopedBookmarkStore.Key.rcloneConfig)
         switchConfigPath(url.path)
     }
 
     private func startDownload(job: TransferJob) async {
-        guard let remote = selectedRemote,
-              let index = transferJobs.firstIndex(where: { $0.id == job.id }) else { return }
-        transferJobs[index].status = .transferring
+        updateTransferJob(job.id) { $0.status = .transferring }
         startProgressPolling()
         let srcComponents = job.remotePath.split(separator: "/", omittingEmptySubsequences: true)
         let srcFile = srcComponents.last.map(String.init) ?? job.fileName
@@ -339,27 +438,43 @@ final class AppViewModel: ObservableObject {
         let dstFile = dstComponents.last.map(String.init) ?? job.fileName
         let dstPath = dstComponents.dropLast().joined(separator: "/")
         do {
-            let jobID = try await service.copyFile(srcRemote: remote.name, srcPath: srcPath, srcFile: srcFile,
-                dstRemote: "", dstPath: "/\(dstPath)", dstFile: dstFile)
+            let jobID = try await service.copyFile(srcRemote: job.remote, srcPath: srcPath, srcFile: srcFile,
+                dstRemote: "", dstPath: dstPath, dstFile: dstFile)
+            updateTransferJob(job.id) { $0.rcloneJobID = jobID }
+            if isTransferCancelled(job.id) {
+                try? await service.stopJob(jobID: jobID)
+                return
+            }
             var finished = false
             while !finished {
                 try await Task.sleep(nanoseconds: 1_000_000_000)
+                if isTransferCancelled(job.id) {
+                    try? await service.stopJob(jobID: jobID)
+                    return
+                }
                 let status = try await service.getJobStatus(jobID: jobID)
-                if let error = status.error { transferJobs[index].errorMessage = error; transferJobs[index].status = .failed; return }
-                transferJobs[index].bytesTransferred = status.bytes
+                if let error = status.error {
+                    updateTransferJob(job.id) {
+                        $0.errorMessage = error
+                        $0.status = .failed
+                    }
+                    return
+                }
+                updateTransferJob(job.id) { $0.bytesTransferred = status.bytes }
                 finished = status.finished
             }
-            transferJobs[index].status = .completed
+            updateTransferJob(job.id) { $0.status = .completed }
+            clearCompletedTransferIfNeeded()
         } catch {
-            transferJobs[index].errorMessage = error.localizedDescription
-            transferJobs[index].status = .failed
+            updateTransferJob(job.id) {
+                $0.errorMessage = error.localizedDescription
+                $0.status = .failed
+            }
         }
     }
 
     private func startUpload(job: TransferJob) async {
-        guard let remote = selectedRemote,
-              let index = transferJobs.firstIndex(where: { $0.id == job.id }) else { return }
-        transferJobs[index].status = .transferring
+        updateTransferJob(job.id) { $0.status = .transferring }
         startProgressPolling()
         let srcFile = (job.localPath as NSString).lastPathComponent
         let srcDir = (job.localPath as NSString).deletingLastPathComponent
@@ -367,21 +482,52 @@ final class AppViewModel: ObservableObject {
         let dstFile = dstComponents.last.map(String.init) ?? job.fileName
         let dstPath = dstComponents.dropLast().joined(separator: "/")
         do {
-            let jobID = try await service.copyFile(srcRemote: "", srcPath: "/\(srcDir)", srcFile: srcFile,
-                dstRemote: remote.name, dstPath: dstPath, dstFile: dstFile)
+            let jobID = try await service.copyFile(srcRemote: "", srcPath: srcDir, srcFile: srcFile,
+                dstRemote: job.remote, dstPath: dstPath, dstFile: dstFile)
+            updateTransferJob(job.id) { $0.rcloneJobID = jobID }
+            if isTransferCancelled(job.id) {
+                try? await service.stopJob(jobID: jobID)
+                return
+            }
             var finished = false
             while !finished {
                 try await Task.sleep(nanoseconds: 1_000_000_000)
+                if isTransferCancelled(job.id) {
+                    try? await service.stopJob(jobID: jobID)
+                    return
+                }
                 let status = try await service.getJobStatus(jobID: jobID)
-                if let error = status.error { transferJobs[index].errorMessage = error; transferJobs[index].status = .failed; return }
-                transferJobs[index].bytesTransferred = status.bytes
+                if let error = status.error {
+                    updateTransferJob(job.id) {
+                        $0.errorMessage = error
+                        $0.status = .failed
+                    }
+                    return
+                }
+                updateTransferJob(job.id) { $0.bytesTransferred = status.bytes }
                 finished = status.finished
             }
-            transferJobs[index].status = .completed
+            updateTransferJob(job.id) { $0.status = .completed }
+            clearCompletedTransferIfNeeded()
         } catch {
-            transferJobs[index].errorMessage = error.localizedDescription
-            transferJobs[index].status = .failed
+            updateTransferJob(job.id) {
+                $0.errorMessage = error.localizedDescription
+                $0.status = .failed
+            }
         }
+    }
+
+    private func updateTransferJob(_ id: TransferJob.ID, _ update: (inout TransferJob) -> Void) {
+        guard let index = transferJobs.firstIndex(where: { $0.id == id }) else { return }
+        update(&transferJobs[index])
+    }
+
+    private func isTransferCancelled(_ id: TransferJob.ID) -> Bool {
+        transferJobs.first(where: { $0.id == id })?.status == .cancelled
+    }
+
+    private func remotePath(for item: RemoteItem, in basePath: String) -> String {
+        RclonePath.childPath(basePath: basePath, itemName: item.name)
     }
 
     private func startProgressPolling() {
@@ -408,7 +554,51 @@ final class AppViewModel: ObservableObject {
     }
 
     func clearCompletedTransfers() {
-        transferJobs.removeAll { $0.status == .completed || $0.status == .failed }
+        transferJobs.removeAll { $0.status == .completed || $0.status == .failed || $0.status == .cancelled }
+    }
+
+    private func clearCompletedTransferIfNeeded() {
+        guard preferences.clearCompletedTransfersAutomatically else { return }
+        clearCompletedTransfers()
+    }
+
+    func cancelTransfer(_ job: TransferJob) {
+        updateTransferJob(job.id) { transfer in
+            transfer.status = .cancelled
+            transfer.errorMessage = nil
+        }
+        if let jobID = job.rcloneJobID {
+            Task { try? await service.stopJob(jobID: jobID) }
+        }
+    }
+
+    func cancelAllTransfers() {
+        let activeJobs = transferJobs.filter { $0.status == .pending || $0.status == .transferring }
+        for job in activeJobs {
+            cancelTransfer(job)
+        }
+    }
+
+    func retryTransfer(_ job: TransferJob) {
+        let retry = TransferJob(
+            remote: job.remote,
+            remotePath: job.remotePath,
+            localPath: job.localPath,
+            fileName: job.fileName,
+            fileSize: job.fileSize,
+            direction: job.direction,
+            status: .pending,
+            bytesTransferred: 0
+        )
+        transferJobs.insert(retry, at: 0)
+        Task {
+            switch retry.direction {
+            case .download:
+                await startDownload(job: retry)
+            case .upload:
+                await startUpload(job: retry)
+            }
+        }
     }
 
     func clearError() { errorMessage = nil }

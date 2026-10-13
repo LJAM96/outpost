@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ColumnBrowserView: View {
@@ -11,6 +12,8 @@ struct ColumnBrowserView: View {
         let title: String
         var items: [RemoteItem]
         var selectedIndex: Int?
+        var isLoading = true
+        var errorMessage: String?
     }
 
     var body: some View {
@@ -30,7 +33,7 @@ struct ColumnBrowserView: View {
                                     },
                                     onDoubleClick: { item in
                                         if !item.isDirectory {
-                                            viewModel.quickOpenFile(item)
+                                            viewModel.quickOpenFile(item, inPath: column.path)
                                         }
                                     },
                                     onContextMenu: { item in }
@@ -73,6 +76,8 @@ struct ColumnBrowserView: View {
 
     private func loadRoot() {
         columns = []
+        viewModel.currentPath = ""
+        viewModel.selectedItems.removeAll()
         guard let remote = viewModel.selectedRemote else { return }
         let col = ColumnData(path: "", title: remote.name, items: [], selectedIndex: nil)
         columns = [col]
@@ -81,22 +86,44 @@ struct ColumnBrowserView: View {
 
     private func loadColumn(_ index: Int, path: String) async {
         guard let remote = viewModel.selectedRemote else { return }
+        if columns.indices.contains(index) {
+            columns[index].isLoading = true
+            columns[index].errorMessage = nil
+        }
         do {
             let rawItems = try await RcloneService.shared.listFiles(remote: remote.name, path: path)
             let sorted = rawItems.sorted { a, b in
                 if a.isDirectory != b.isDirectory { return a.isDirectory }
                 return a.name.localizedStandardCompare(b.name) == .orderedAscending
             }
+            guard columns.indices.contains(index), columns[index].path == path else { return }
             columns[index].items = sorted
-        } catch {}
+            columns[index].isLoading = false
+            columns[index].errorMessage = nil
+            if index == columns.count - 1 {
+                viewModel.items = sorted
+            }
+        } catch {
+            guard columns.indices.contains(index), columns[index].path == path else { return }
+            columns[index].items = []
+            columns[index].isLoading = false
+            columns[index].errorMessage = error.localizedDescription
+        }
     }
 
     private func handleSelection(at index: Int, item: RemoteItem) {
         columns[index].selectedIndex = columns[index].items.firstIndex(where: { $0.id == item.id })
+        viewModel.items = columns[index].items
 
-        guard item.isDirectory else { return }
+        guard item.isDirectory else {
+            viewModel.currentPath = columns[index].path
+            viewModel.selectedItems = [item.id]
+            return
+        }
 
         let newPath = columns[index].path.isEmpty ? item.name : "\(columns[index].path)/\(item.name)"
+        viewModel.currentPath = newPath
+        viewModel.selectedItems.removeAll()
 
         columns = Array(columns.prefix(index + 1))
 
@@ -123,8 +150,9 @@ private struct ColumnPane: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 5) {
-                Image(nsImage: NSWorkspace.shared.icon(forFileType: NSFileTypeForHFSTypeCode(OSType(kGenericFolderIcon))))
-                    .resizable().aspectRatio(contentMode: .fit).frame(width: 14, height: 14)
+                Image(systemName: "folder")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
                 Text(column.title)
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
@@ -139,10 +167,29 @@ private struct ColumnPane: View {
 
             Divider()
 
-            if column.items.isEmpty {
+            if column.isLoading {
                 VStack(spacing: 6) {
                     ProgressView().scaleEffect(0.5)
                     Text("Loading...").font(.caption).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let errorMessage = column.errorMessage {
+                VStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if column.items.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .foregroundStyle(.tertiary)
+                    Text("Empty Folder").font(.caption).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -196,15 +243,5 @@ private struct ColumnItemRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .background(isSelected ? Color.accentColor.opacity(0.8) : Color.clear)
-        .foregroundStyle(isSelected ? .white : .primary)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .onTapGesture(count: 2) {
-            onDoubleClick()
-        }
-        .onTapGesture {
-            onSelect()
-        }
     }
 }

@@ -24,7 +24,34 @@
 		4C8B3A5D000000030000000F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5D000000020000000F /* SettingsView.swift */; };
 		4C8B3A5D0000000300000010 /* FileIconProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5D0000000200000010 /* FileIconProvider.swift */; };
 		4C8B3A5D0000000300000011 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5D0000000200000011 /* ThumbnailCache.swift */; };
+		4C8B3A5E0000000300000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000001 /* AppDelegate.swift */; };
+		4C8B3A5E0000000300000002 /* RcloneDaemonController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000002 /* RcloneDaemonController.swift */; };
+		4C8B3A5E0000000300000003 /* RclonePath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000003 /* RclonePath.swift */; };
+		4C8B3A5E0000000300000004 /* RcloneJobStatusParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000004 /* RcloneJobStatusParser.swift */; };
+		4C8B3A5E0000000300000005 /* RclonePathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000006 /* RclonePathTests.swift */; };
+		4C8B3A5E0000000300000006 /* RcloneJobStatusParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5E0000000200000007 /* RcloneJobStatusParserTests.swift */; };
+		4C8B3A5F0000000300000001 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000001 /* AppPreferences.swift */; };
+		4C8B3A5F0000000300000002 /* OutpostCommandCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000002 /* OutpostCommandCenter.swift */; };
+		4C8B3A5F0000000300000003 /* SecurityScopedBookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000003 /* SecurityScopedBookmarkStore.swift */; };
+		4C8B3A5F0000000300000004 /* LaunchAtLoginController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000004 /* LaunchAtLoginController.swift */; };
+		4C8B3A5F0000000300000005 /* UpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000005 /* UpdateController.swift */; };
+		4C8B3A5F0000000300000006 /* StatusBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000006 /* StatusBannerView.swift */; };
+		4C8B3A5F0000000300000007 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000007 /* PrivacyInfo.xcprivacy */; };
+		4C8B3A5F0000000300000008 /* TransferJobTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F0000000200000009 /* TransferJobTests.swift */; };
+		4C8B3A5F0000000300000009 /* BrowserViewMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F000000020000000A /* BrowserViewMode.swift */; };
+		4C8B3A5F000000030000000A /* RemoteIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F000000020000000B /* RemoteIcon.swift */; };
+		4C8B3A5F000000030000000B /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4C8B3A5F000000020000000C /* AppIcon.icon */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4C8B3A5E0000000500000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C8B3A5D0000000100000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C8B3A5D0000000100000005;
+			remoteInfo = Outpost;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		4C8B3A5D0000000200000000 /* Outpost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Outpost.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -45,13 +72,43 @@
 		4C8B3A5D000000020000000F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4C8B3A5D0000000200000010 /* FileIconProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileIconProvider.swift; sourceTree = "<group>"; };
 		4C8B3A5D0000000200000011 /* ThumbnailCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailCache.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000002 /* RcloneDaemonController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RcloneDaemonController.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000003 /* RclonePath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RclonePath.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000004 /* RcloneJobStatusParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RcloneJobStatusParser.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000005 /* OutpostTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OutpostTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C8B3A5E0000000200000006 /* RclonePathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RclonePathTests.swift; sourceTree = "<group>"; };
+		4C8B3A5E0000000200000007 /* RcloneJobStatusParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RcloneJobStatusParserTests.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000001 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000002 /* OutpostCommandCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutpostCommandCenter.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000003 /* SecurityScopedBookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityScopedBookmarkStore.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000004 /* LaunchAtLoginController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginController.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000005 /* UpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateController.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000006 /* StatusBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBannerView.swift; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000007 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000008 /* Outpost.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Outpost.entitlements; sourceTree = "<group>"; };
+		4C8B3A5F0000000200000009 /* TransferJobTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferJobTests.swift; sourceTree = "<group>"; };
+		4C8B3A5F000000020000000A /* BrowserViewMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserViewMode.swift; sourceTree = "<group>"; };
+		4C8B3A5F000000020000000B /* RemoteIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteIcon.swift; sourceTree = "<group>"; };
+		4C8B3A5F000000020000000C /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4C8B3A5E0000000500000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		4C8B3A5D0000000100000002 = {
 			isa = PBXGroup;
 			children = (
 				4C8B3A5D0000000400000000 /* Outpost */,
+				4C8B3A5E0000000400000003 /* OutpostTests */,
 				4C8B3A5D0000000100000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -60,6 +117,7 @@
 			isa = PBXGroup;
 			children = (
 				4C8B3A5D0000000200000000 /* Outpost.app */,
+				4C8B3A5E0000000200000005 /* OutpostTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -68,15 +126,21 @@
 			isa = PBXGroup;
 			children = (
 				4C8B3A5D0000000200000001 /* OutpostApp.swift */,
+				4C8B3A5E0000000200000001 /* AppDelegate.swift */,
 				4C8B3A5D0000000200000002 /* ContentView.swift */,
 				4C8B3A5D0000000200000003 /* RcloneService.swift */,
 				4C8B3A5D0000000200000010 /* FileIconProvider.swift */,
 				4C8B3A5D0000000200000011 /* ThumbnailCache.swift */,
 				4C8B3A5D0000000400000001 /* Models */,
+				4C8B3A5E0000000400000001 /* Services */,
+				4C8B3A5E0000000400000002 /* Support */,
 				4C8B3A5D0000000400000002 /* Views */,
 				4C8B3A5D0000000400000003 /* ViewModels */,
 				4C8B3A5D000000020000000B /* Info.plist */,
+				4C8B3A5F0000000200000008 /* Outpost.entitlements */,
+				4C8B3A5F0000000200000007 /* PrivacyInfo.xcprivacy */,
 				4C8B3A5D000000020000000C /* Assets.xcassets */,
+				4C8B3A5F000000020000000C /* AppIcon.icon */,
 			);
 			path = Outpost;
 			sourceTree = "<group>";
@@ -100,6 +164,7 @@
 				4C8B3A5D000000020000000D /* NewRemoteView.swift */,
 				4C8B3A5D000000020000000E /* ColumnBrowserView.swift */,
 				4C8B3A5D000000020000000F /* SettingsView.swift */,
+				4C8B3A5F0000000200000006 /* StatusBannerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -110,6 +175,40 @@
 				4C8B3A5D000000020000000A /* AppViewModel.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		4C8B3A5E0000000400000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4C8B3A5E0000000200000002 /* RcloneDaemonController.swift */,
+				4C8B3A5F0000000200000003 /* SecurityScopedBookmarkStore.swift */,
+				4C8B3A5F0000000200000004 /* LaunchAtLoginController.swift */,
+				4C8B3A5F0000000200000005 /* UpdateController.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4C8B3A5E0000000400000002 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				4C8B3A5E0000000200000003 /* RclonePath.swift */,
+				4C8B3A5E0000000200000004 /* RcloneJobStatusParser.swift */,
+				4C8B3A5F0000000200000001 /* AppPreferences.swift */,
+				4C8B3A5F0000000200000002 /* OutpostCommandCenter.swift */,
+				4C8B3A5F000000020000000A /* BrowserViewMode.swift */,
+				4C8B3A5F000000020000000B /* RemoteIcon.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		4C8B3A5E0000000400000003 /* OutpostTests */ = {
+			isa = PBXGroup;
+			children = (
+				4C8B3A5E0000000200000006 /* RclonePathTests.swift */,
+				4C8B3A5E0000000200000007 /* RcloneJobStatusParserTests.swift */,
+				4C8B3A5F0000000200000009 /* TransferJobTests.swift */,
+			);
+			path = OutpostTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -131,6 +230,23 @@
 			productReference = 4C8B3A5D0000000200000000 /* Outpost.app */;
 			productType = "com.apple.product-type.application";
 		};
+		4C8B3A5E0000000500000001 /* OutpostTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C8B3A5E0000000700000003 /* Build configuration list for PBXNativeTarget "OutpostTests" */;
+			buildPhases = (
+				4C8B3A5E0000000500000004 /* Sources */,
+				4C8B3A5E0000000500000003 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C8B3A5E0000000500000005 /* PBXTargetDependency */,
+			);
+			name = OutpostTests;
+			productName = OutpostTests;
+			productReference = 4C8B3A5E0000000200000005 /* OutpostTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -143,6 +259,10 @@
 				TargetAttributes = {
 					4C8B3A5D0000000100000005 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					4C8B3A5E0000000500000001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 4C8B3A5D0000000100000005;
 					};
 				};
 			};
@@ -160,6 +280,7 @@
 			projectRoot = "";
 			targets = (
 				4C8B3A5D0000000100000005 /* Outpost */,
+				4C8B3A5E0000000500000001 /* OutpostTests */,
 			);
 		};
 /* End PBXProject section */
@@ -170,6 +291,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C8B3A5D000000030000000C /* Assets.xcassets in Resources */,
+				4C8B3A5F0000000300000007 /* PrivacyInfo.xcprivacy in Resources */,
+				4C8B3A5F000000030000000B /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -181,6 +304,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C8B3A5D0000000300000001 /* OutpostApp.swift in Sources */,
+				4C8B3A5E0000000300000001 /* AppDelegate.swift in Sources */,
 				4C8B3A5D0000000300000002 /* ContentView.swift in Sources */,
 				4C8B3A5D0000000300000003 /* RcloneService.swift in Sources */,
 				4C8B3A5D0000000300000004 /* RemoteItem.swift in Sources */,
@@ -195,10 +319,39 @@
 				4C8B3A5D000000030000000F /* SettingsView.swift in Sources */,
 				4C8B3A5D0000000300000010 /* FileIconProvider.swift in Sources */,
 				4C8B3A5D0000000300000011 /* ThumbnailCache.swift in Sources */,
+				4C8B3A5E0000000300000002 /* RcloneDaemonController.swift in Sources */,
+				4C8B3A5E0000000300000003 /* RclonePath.swift in Sources */,
+				4C8B3A5E0000000300000004 /* RcloneJobStatusParser.swift in Sources */,
+				4C8B3A5F0000000300000001 /* AppPreferences.swift in Sources */,
+				4C8B3A5F0000000300000002 /* OutpostCommandCenter.swift in Sources */,
+				4C8B3A5F0000000300000003 /* SecurityScopedBookmarkStore.swift in Sources */,
+				4C8B3A5F0000000300000004 /* LaunchAtLoginController.swift in Sources */,
+				4C8B3A5F0000000300000005 /* UpdateController.swift in Sources */,
+				4C8B3A5F0000000300000006 /* StatusBannerView.swift in Sources */,
+				4C8B3A5F0000000300000009 /* BrowserViewMode.swift in Sources */,
+				4C8B3A5F000000030000000A /* RemoteIcon.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C8B3A5E0000000500000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C8B3A5E0000000300000005 /* RclonePathTests.swift in Sources */,
+				4C8B3A5E0000000300000006 /* RcloneJobStatusParserTests.swift in Sources */,
+				4C8B3A5F0000000300000008 /* TransferJobTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4C8B3A5E0000000500000005 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C8B3A5D0000000100000005 /* Outpost */;
+			targetProxy = 4C8B3A5E0000000500000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4C8B3A5D0000000100000009 /* Debug */ = {
@@ -259,7 +412,7 @@
 		4C8B3A5D000000010000000B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Outpost/Outpost.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -267,7 +420,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Outpost/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.outpost.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -279,7 +432,7 @@
 		4C8B3A5D000000010000000C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Outpost/Outpost.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -287,12 +440,44 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Outpost/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.outpost.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4C8B3A5E0000000700000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outpost.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Outpost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Outpost";
+			};
+			name = Debug;
+		};
+		4C8B3A5E0000000700000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.outpost.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Outpost.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Outpost";
 			};
 			name = Release;
 		};
@@ -313,6 +498,15 @@
 			buildConfigurations = (
 				4C8B3A5D000000010000000B /* Debug */,
 				4C8B3A5D000000010000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C8B3A5E0000000700000003 /* Build configuration list for PBXNativeTarget "OutpostTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C8B3A5E0000000700000001 /* Debug */,
+				4C8B3A5E0000000700000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

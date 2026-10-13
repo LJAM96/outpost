@@ -48,7 +48,7 @@ actor RcloneService {
     }
 
     func listFiles(remote: String, path: String) async throws -> [RemoteItem] {
-        let fs = "\(remote):\(path)"
+        let fs = RclonePath.fs(remote: remote, path: path)
         let body: [String: Any] = ["fs": fs, "remote": ""]
         let data = try await post(endpoint: "operations/list", body: body)
         guard let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -60,31 +60,37 @@ actor RcloneService {
     }
 
     func statFile(remote: String, path: String) async throws -> RemoteItem {
-        let fs = "\(remote):\(path)"
+        let fs = RclonePath.fs(remote: remote, path: path)
         let body: [String: Any] = ["fs": fs]
         let data = try await post(endpoint: "operations/stat", body: body)
         return try JSONDecoder().decode(RemoteItem.self, from: data)
     }
 
     func createDirectory(remote: String, path: String, directoryName: String) async throws {
-        let body: [String: Any] = ["fs": "\(remote):\(path)", "remote": directoryName]
+        let body: [String: Any] = ["fs": RclonePath.fs(remote: remote, path: path), "remote": directoryName]
         _ = try await post(endpoint: "operations/mkdir", body: body)
     }
 
     func deleteItem(remote: String, path: String, itemName: String) async throws {
-        let body: [String: Any] = ["fs": "\(remote):\(path)", "remote": itemName]
+        let body: [String: Any] = ["fs": RclonePath.fs(remote: remote, path: path), "remote": itemName]
         _ = try await post(endpoint: "operations/deletefile", body: body)
+    }
+
+    func deleteDirectory(remote: String, path: String, directoryName: String) async throws {
+        let body: [String: Any] = ["fs": RclonePath.fs(remote: remote, path: path), "remote": directoryName]
+        _ = try await post(endpoint: "operations/purge", body: body)
     }
 
     func copyFile(srcRemote: String, srcPath: String, srcFile: String,
                    dstRemote: String, dstPath: String, dstFile: String) async throws -> String {
-        let srcFs = srcRemote.isEmpty ? "/\(srcPath)" : "\(srcRemote):\(srcPath)"
-        let dstFs = dstRemote.isEmpty ? "/\(dstPath)" : "\(dstRemote):\(dstPath)"
+        let srcFs = RclonePath.fs(remote: srcRemote, path: srcPath)
+        let dstFs = RclonePath.fs(remote: dstRemote, path: dstPath)
         let body: [String: Any] = [
             "srcFs": srcFs,
             "dstFs": dstFs,
             "srcRemote": srcFile,
-            "dstRemote": dstFile
+            "dstRemote": dstFile,
+            "_async": true
         ]
         let data = try await post(endpoint: "operations/copyfile", body: body)
         let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -93,7 +99,11 @@ actor RcloneService {
     }
 
     func syncCopy(srcRemote: String, srcPath: String, dstPath: String) async throws -> String {
-        let body: [String: Any] = ["srcFs": "\(srcRemote):\(srcPath)", "dstFs": dstPath]
+        let body: [String: Any] = [
+            "srcFs": RclonePath.fs(remote: srcRemote, path: srcPath),
+            "dstFs": RclonePath.fs(remote: "", path: dstPath),
+            "_async": true
+        ]
         let data = try await post(endpoint: "sync/copy", body: body)
         let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         guard let jobID = dict?["jobid"] as? Int else { throw RcloneError.invalidResponse }
@@ -103,18 +113,13 @@ actor RcloneService {
     func getJobStatus(jobID: String) async throws -> (bytes: Int64, total: Int64, finished: Bool, error: String?) {
         let body: [String: Any] = ["jobid": Int(jobID) ?? 0]
         let data = try await post(endpoint: "job/status", body: body)
-        guard let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw RcloneError.invalidResponse
-        }
-        let finished = dict["finished"] as? Bool ?? false
-        let error = dict["error"] as? String
-        var bytes: Int64 = 0
-        var total: Int64 = 0
-        if let output = dict["output"] as? [String: Any] {
-            bytes = output["bytes"] as? Int64 ?? 0
-            total = output["total"] as? Int64 ?? 0
-        }
-        return (bytes, total, finished, error)
+        let status = try RcloneJobStatusParser.parse(data)
+        return (status.bytes, status.total, status.finished, status.error)
+    }
+
+    func stopJob(jobID: String) async throws {
+        let body: [String: Any] = ["jobid": Int(jobID) ?? 0]
+        _ = try await post(endpoint: "job/stop", body: body)
     }
 
     func listProviders() async throws -> [String] {
@@ -213,6 +218,7 @@ actor RcloneService {
         }
         return data
     }
+
 }
 
 struct RcloneConfigPrompt: Codable {

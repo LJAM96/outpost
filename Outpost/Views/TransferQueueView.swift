@@ -12,10 +12,24 @@ struct TransferQueueView: View {
                 Spacer()
 
                 if !viewModel.transferJobs.isEmpty {
-                    Button("Clear Completed") {
-                        viewModel.clearCompletedTransfers()
+                    HStack(spacing: 8) {
+                        Button {
+                            viewModel.cancelAllTransfers()
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(!viewModel.transferJobs.contains { $0.status == .pending || $0.status == .transferring })
+                        .help("Cancel active transfers")
+
+                        Button("Clear Completed") {
+                            viewModel.clearCompletedTransfers()
+                        }
+                        .font(.caption)
+                        .disabled(!viewModel.transferJobs.contains {
+                            $0.status == .completed || $0.status == .failed || $0.status == .cancelled
+                        })
                     }
-                    .font(.caption)
                 }
             }
             .padding(.horizontal, 12)
@@ -38,6 +52,7 @@ struct TransferQueueView: View {
 
                     ForEach(viewModel.transferJobs) { job in
                         TransferJobRow(job: job)
+                            .environmentObject(viewModel)
                     }
                 }
             }
@@ -77,6 +92,7 @@ struct TransferQueueView: View {
 }
 
 struct TransferJobRow: View {
+    @EnvironmentObject var viewModel: AppViewModel
     let job: TransferJob
 
     var body: some View {
@@ -104,6 +120,26 @@ struct TransferJobRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                if job.status == .pending || job.status == .transferring {
+                    Button {
+                        viewModel.cancelTransfer(job)
+                    } label: {
+                        Image(systemName: "xmark.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Cancel transfer")
+                    .help("Cancel")
+                } else if job.status == .failed || job.status == .cancelled {
+                    Button {
+                        viewModel.retryTransfer(job)
+                    } label: {
+                        Image(systemName: "arrow.clockwise.circle")
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Retry transfer")
+                    .help("Retry")
+                }
             }
 
             if job.status == .transferring && job.fileSize > 0 {
@@ -126,6 +162,7 @@ struct TransferJobRow: View {
         case .transferring: return "arrow.triangle.swap"
         case .completed: return "checkmark.circle"
         case .failed: return "xmark.circle"
+        case .cancelled: return "minus.circle"
         }
     }
 
@@ -135,6 +172,7 @@ struct TransferJobRow: View {
         case .transferring: return .blue
         case .completed: return .green
         case .failed: return .red
+        case .cancelled: return .secondary
         }
     }
 
@@ -157,6 +195,10 @@ struct TransferJobRow: View {
             Text("Failed")
                 .font(.caption)
                 .foregroundStyle(.red)
+        case .cancelled:
+            Text("Cancelled")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
